@@ -1,0 +1,9 @@
+{
+    "Name" : "${ORTHANC_NAME} ABC",
+    "RemoteAccessAllowed" : true,
+    "AuthenticationEnabled" : false,
+    "Plugins" : [
+        "/usr/local/share/orthanc/plugins"
+    ],
+    "PythonScript": "/etc/orthanc/auth.py"
+  }

@@ -1,0 +1,9 @@
+{
+    "mandatory_tags": [
+        "PatientName",
+        "PatientID",
+        "PatientAge",
+        "PatientBirthDate",
+        "PatientSex"
+    ]
+}

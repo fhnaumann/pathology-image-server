@@ -1,0 +1,9 @@
+**/example_data/**
+**/dicomized/**
+**/converted/**
+*.b64*
+**/target/**
+**/__pycache__/**
+*.devcontainer
+*.vscode
+**/fetched_images/**

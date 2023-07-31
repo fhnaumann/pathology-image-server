@@ -1,0 +1,29 @@
+{
+    "resourceType": "StructureDefinition",
+    "url": "http://localhost:8081/fhir/StructureDefinition/dcm-key",
+    "name": "Dicom Key from Tag Extension",
+    "kind": "primitive-type",
+    "context": [{
+        "type": "extension",
+        "expression": "URI TO PARENT EXTENSION"
+    }],
+    "type": "Extension",
+    "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+    "deriviation": "constraint",
+    "differential": [{
+        "element": [{
+            "path": "Extension"
+        }, {
+            "path": "Extension.url",
+            "fixedUri": "http://localhost:8081/fhir/StructureDefinition/dcm-key",
+        }, {
+            "path": "Extension.valueString",
+            "short": "The key in a dicom tag.",
+            "type": [{
+                "code": "String"
+            }]
+        }
+        ]
+    }]
+
+}

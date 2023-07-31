@@ -1,0 +1,208 @@
+version: '3.7'
+services:
+  # not using nginx reverse-proxy anymore
+  # reverse-proxy:
+  #   build:
+  #     context: "./reverse proxy"
+  #     dockerfile: Dockerfile
+  #   depends_on:
+  #     - hapi-fhir
+  #     - keycloak
+  #   expose:
+  #     - 80 # HTTP
+  #     - 443 # HTTPS
+  #   ports:
+  #     - "8000:80" # HTTP
+  #     - "8443:443" # HTTPS
+  #   networks:
+  #     - frontend
+  #     - keycloak
+  rabbitmq:
+    image: rabbitmq:3.12.0
+    container_name: rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - message-broker
+  keycloak:
+    container_name: keycloak
+    image: quay.io/keycloak/keycloak:20.0.0
+    command: start --import-realm
+    networks:
+      - keycloak
+      - backend
+    depends_on:
+      - keycloak-postgres
+    ports:
+      - 8085:8080
+    volumes:
+      - ./keycloak/import:/opt/keycloak/data/import
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-postgres:5432/keycloak
+      KC_DB_USERNAME: admin
+      KC_DB_PASSWORD: admin
+      KC_HOSTNAME_URL: http://localhost:8085
+      KC_DB_URL_PORT: 5432
+      KC_DB_DATABASE: keycloak
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HOSTNAME_ADMIN:URL: http://localhost:8085
+  keycloak-postgres:
+    container_name: keycloak-postgres
+    image: postgres:latest
+    user: root
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      PGPORT: 5432
+    networks:
+      - keycloak
+    volumes:
+      - kc-postgres-data:/var/lib/postgresql/data
+  hapi-fhir:
+    build:
+      context: ./hapi-fhir-jpaserver-starter
+      dockerfile: Dockerfile
+    container_name: hapi-fhir-dev
+    restart: on-failure
+    environment:
+      #- "CATALINA_OPTS=\"-Xmx14g\""
+      - "JAVA_OPTS=-Xmx14g -XX:+PrintGCDetails"
+    ports:
+      - "8081:8080"
+    networks:
+      - frontend
+      - message-broker
+      - backend
+    configs:
+      - source: hapi
+        target: /app/config/application.yaml
+    volumes:
+      - create-data:/bitnami/tomcat/webapps/app/create-data
+    depends_on:
+      - hapi-fhir-postgres
+      - prop-postgres
+  hapi-fhir-postgres:
+    image: postgres:13-alpine
+    container_name: hapi-fhir-postgres
+    restart: always
+    networks:
+      - backend
+    environment:
+      POSTGRES_DB: "hapi"
+      POSTGRES_USER: "admin"
+      POSTGRES_PASSWORD: "admin"
+    volumes:
+      - hapi-fhir-postgres:/var/lib/postgresql/data
+  converter:
+    build:
+      context: ./converter
+      dockerfile: Dockerfile
+    command: python rabbit_consumer.py
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - backend
+      - message-broker
+      - keycloak
+    volumes:
+      - create-data:/app/create-data
+  prop-postgres:
+    image: postgres:15
+    container_name: prop-postgres
+    restart: always
+    ports:
+      - 5433:5432
+    networks:
+      - backend
+    environment:
+      POSTGRES_DB: "prop"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    volumes:
+      - ./prop-db/db.sql:/docker-entrypoint-initdb.d/db.sql
+      - create-data:/var/lib/postgresql/data
+  prop-postgres-rest:
+    image: postgrest/postgrest
+    ports:
+      - 3001:3000
+    environment:
+      PGRST_DB_URI: postgres://postgres:postgres@prop-postgres:5432/prop
+      PGRST_OPENAPI_SERVER_PROXY_URI: http://localhost:3001
+      PGRST_DB_ANON_ROLE: anon
+    networks:
+      - backend
+    depends_on:
+      - prop-postgres
+  prop-postgres-admin:
+    container_name: prop-postgres-admin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - backend
+    depends_on:
+      - prop-postgres
+  orthanc-pacs:
+    build:
+      context: ./orthanc
+      dockerfile: Dockerfile
+    command: /run/secrets/
+    ports:
+      - 4242:4242
+      - 8042:8042
+    secrets:
+      - orthanc.json
+    environment:
+      - ORTHANC_NAME=WSI-Orthanc
+    volumes:
+      - ./orthanc/python-scripts/auth.py:/etc/orthanc/auth.py
+      - ./orthanc/python-scripts/conversion_util.py:/etc/orthanc/conversion_util.py
+      - orthanc-data:/var/lib/orthanc/db/
+    networks:
+      - keycloak
+      - backend
+configs:
+  hapi:
+    file: ./hapi-fhir-jpaserver-starter/src/main/resources/application.yaml
+networks:
+  frontend:
+    name: frontend-network
+  backend:
+    name: backend-network
+  message-broker:
+    name: message-broker-network
+  keycloak:
+    name: keycloak-network
+volumes:
+  orthanc-data:
+  hapi-fhir-postgres:
+  create-data:
+  rabbitmq-data:
+  kc-postgres-data:
+  pgadmin-data:
+secrets:
+  orthanc.json:
+    file: orthanc/orthanc.json

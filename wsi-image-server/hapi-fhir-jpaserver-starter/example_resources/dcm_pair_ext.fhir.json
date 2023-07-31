@@ -1,0 +1,19 @@
+{
+    "resourceType": "StructureDefinition",
+    "url": "http://localhost:8081/fhir/StructureDefinition/dcm_pair",
+    "name": "DicomKeyValuePair",
+    "kind": "complex-type",
+    "context": [{
+        "type": "element",
+        "expression": "DocumentReference"
+    }],
+    "type": "Extension",
+    "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+    "deriviation": "constraint",
+    "differential": {
+        "element": [{
+            "path": "Extension",
+            
+        }]
+    }
+}

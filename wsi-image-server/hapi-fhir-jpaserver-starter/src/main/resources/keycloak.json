@@ -1,0 +1,8 @@
+{
+  "realm": "myrealm",
+  "auth-server-url" : "http://keycloak:8080",
+  "resource" : "myclient",
+  "credentials": {
+    "secret": "myclient-secret"
+  }
+}

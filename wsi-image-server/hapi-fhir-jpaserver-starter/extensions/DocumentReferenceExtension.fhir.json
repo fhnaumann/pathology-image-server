@@ -1,0 +1,35 @@
+{
+    "resourceType" : "StructureDefinition",
+    "url" : "http://localhost.org/fhir/StructureDefinition/dicom-tags",
+    "name": "Additional DICOM tags",
+    "kind": "complex-type",
+    "context": [{
+        "type": "element",
+        "expression": "DocumentReference"
+    }],
+    "type": "Extension",
+    "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+    "derivation": "constraint",
+    "differential": {
+        "element": [{
+            "path": "Extension",
+            "short": "Test short",
+            "definition": "Long definition put here",
+            "comment": "A comment to be made",
+            "mustSupport": false,
+            "isModifier": false
+        }, {
+            "path": "Extension.url",
+            "fixedUri": "http://localhost.org/fhir/StructureDefinition/dicom-tags"
+        }, {
+            "path": "Extension.valueString",
+            "short": "Key for a single dicom tag",
+            "min": 1,
+            "type": [{
+                "code": "dicom-tag-key"
+            }],
+            "mustSupport": true
+        }]
+    }
+
+}

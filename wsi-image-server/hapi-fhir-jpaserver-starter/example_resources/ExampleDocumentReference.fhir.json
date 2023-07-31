@@ -1,0 +1,32 @@
+{
+    "resourceType": "DocumentReference",
+    "status": "current",
+    "content": [{
+        "attachment": {
+            "contentType": "application/gzip",
+            "data": ""
+        }
+    }],
+    "extension": [
+        {
+            "url": "https://localhost:8080/fhir/StructureDefinition/DicomTag",
+            "extension": [{
+                "url": "dcm_key2",
+                "valueString": "abc"
+            }, {
+                "url": "dcm_value",
+                "valueString": "def"
+            }]
+        }, {
+            "url": "https://localhost:8080/fhir/StructureDefinition/DicomTag",
+            "extension": [{
+                "url": "dcm_key",
+                "valueString": "abc2"
+            }, {
+                "url": "dcm_value",
+                "valueString": "def2"
+            }]
+        }
+
+    ]
+}

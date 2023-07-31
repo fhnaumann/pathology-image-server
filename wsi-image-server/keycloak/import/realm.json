@@ -1,0 +1,106 @@
+{
+    "realm": "myrealm",
+    "enabled": true,
+    "users": [
+        {
+            "username": "fhir_admin",
+            "enabled": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "fhir_admin"
+                }
+            ],
+            "realmRoles": [
+                "admin", "create_resource"
+            ],
+            "clientRoles": {
+                "realm-management": [
+                    "realm-admin"
+                ]
+            }
+        },
+        {
+            "username": "converter_fhir_uploader",
+            "enabled": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "converter_fhir_uploader"
+                }
+            ],
+            "realmRoles": [
+                "converter_fhir_upload"
+            ]
+        },
+        {
+            "username": "converter_pacs_uploader",
+            "enabled": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "converter_pacs_uploader"
+                }
+            ],
+            "realmRoles": [
+                "converter_pacs_upload"
+            ]
+        },
+        {
+            "username": "user",
+            "enabled": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "user"
+                }
+            ],
+            "realmRoles": [
+                "create_resource"
+            ]
+        },
+        {
+            "username": "nothing",
+            "enabled": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "nothing"
+                }
+            ]
+        }
+    ],
+    "roles": {
+        "realm": [
+            {
+                "name": "admin"
+            },
+            {
+                "name": "converter_fhir_upload"
+            },
+            {
+                "name": "converter_pacs_upload"
+            },
+            {
+                "name": "create_resource"
+            }
+        ]
+    },
+    "clients": [
+        {
+            "clientId": "myclient",
+            "enabled": true,
+            "clientAuthenticatorType": "client-secret",
+            "secret": "myclient-secret",
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": true,
+            "serviceAccountsEnabled": true,
+            "authorizationServicesEnabled": true,
+            "publicClient": false,
+            "protocol": "openid-connect",
+            "redirectUris": [
+                "http://localhost:8081/*", "http://hapi-fhir-dev:8081/fhir/*", "http://localhost:8042/*", "http://orthanc-pacs:8042/*"
+            ]
+        }
+    ]
+}
