@@ -87,6 +87,12 @@ status_column = [
 image_column = [
     [sg.InputText(default_text="", size=(30,1), enable_events=True, key="-MANUAL BUSINESS ID-")],
     [
+        sg.Text("Instance:"), sg.InputText(size=(15, 1), default_text="0", key="-INSTANCE-"), sg.Text("/ ?", key="-TOTAL INSTANCE-")
+    ],
+    [
+        sg.Text("Frame:"), sg.InputText(size=(15, 1), default_text="1", key="-FRAME-"), sg.Text("/ ?", key="-TOTAL FRAME-")
+    ],
+    [
         sg.Text("Username:"), sg.InputText(size=(15, 1), default_text=USER_NAME, key="-USERNAME2-")
     ],
     [
@@ -174,7 +180,7 @@ def get_sop_instance(series: ImagingStudySeries, instance_number_to_find=0) -> I
         for instance in series.instance: #type: ImagingStudySeriesInstance
             if instance.number == instance_number_to_find:
                 return instance
-    # raise RuntimeError("no sop instance with number 0 exists in series!")
+    raise RuntimeError(f"no sop instance with number {instance_number_to_find} exists in series!")
 
 def generate_random_dcm_values():
     dcm_tags = ["PatientID", "PatientName", "PatientAge", "PatientBirthDate", "PatientSex"]
@@ -335,6 +341,7 @@ while True:
         window["-MANUAL BUSINESS ID-"].update(value=business_id)
         window["-USE BUSINESS ID-"].update(disabled=False)
 
+
     elif event == "-MANUAL BUSINESS ID-":
         business_id = values["-MANUAL BUSINESS ID-"]
         if business_id is not None and business_id != "":
@@ -392,14 +399,22 @@ while True:
 
         imaging_study = ImagingStudy.parse_obj(resource)
 
+        sop_instance_amount = imaging_study.numberOfInstances - 1 # 0 indexed!
+        window["-TOTAL INSTANCE-"].update(f"/ {sop_instance_amount}") 
+
         series: ImagingStudySeries = imaging_study.series[0]
-        first_sop_instance = get_sop_instance(series, instance_number_to_find=-1)
+        try:
+            sop_instance = get_sop_instance(series, instance_number_to_find=int(values["-INSTANCE-"]))
+        except Exception as e:
+            sg.popup_error_with_traceback(f"Malformed input sent to the DICOMweb server!", e)
+            continue
 
         series_url = get_address_for(what_for="series", endpoints=imaging_study.contained)
 
         width_tag = "00480006"
         height_tag = "00480007"
-        url_to_get_first_instance_sizes = f"{series_url}/instances?SOPInstanceUID={first_sop_instance.uid}&includefield={width_tag}&includefield={height_tag}"
+        number_of_frames_tag = "00280008"
+        url_to_get_first_instance_sizes = f"{series_url}/instances?SOPInstanceUID={sop_instance.uid}&includefield={width_tag}&includefield={height_tag}&includefield={number_of_frames_tag}"
         url_to_get_first_instance_sizes = url_to_get_first_instance_sizes.replace("orthanc-pacs", "localhost") # not in container
         response = requests.get(url=url_to_get_first_instance_sizes, headers={"Authorization": f"Bearer {access_token}"})
         try:
@@ -410,10 +425,14 @@ while True:
         print(return_str)
         image_width = return_str[0][width_tag]["Value"][0]
         image_height = return_str[0][height_tag]["Value"][0]
+        number_of_frames = return_str[0][number_of_frames_tag]["Value"][0]
         print(image_width)
         print(image_height)
-        frame_number = 1
-        url_to_rendered_first_instance = f"{series_url}instances/{first_sop_instance.uid}/frames/{frame_number}/rendered?viewport=,,,,{image_width},{image_height}"
+        print(number_of_frames)
+        window["-TOTAL FRAME-"].update(f"/ {number_of_frames}")
+        frame_number = values["-FRAME-"]
+        url_to_rendered_first_instance = f"{series_url}instances/{sop_instance.uid}/frames/{frame_number}/rendered?viewport=,,,,{image_width},{image_height}"
+        # url_to_rendered_first_instance = f"{series_url}instances/{sop_instance.uid}/frames/{frame_number}/rendered"
         url_to_rendered_first_instance = url_to_rendered_first_instance.replace("orthanc-pacs", "localhost") # not in container
         print(url_to_rendered_first_instance)
         headers = {
@@ -423,11 +442,12 @@ while True:
         response = requests.get(url=url_to_rendered_first_instance, headers=headers, stream=True)
         try:
             response.raise_for_status()
-        except:
+        except Exception as e:
             print("error while get")
             print(response.status_code)
             print(response.text)
-        rendered_image_filename = os.path.join("fetched_images", first_sop_instance.uid.replace(".", "_") + ".png")
+            sg.popup_error_with_traceback(f"Malformed input sent to the DICOMweb server!", e)
+        rendered_image_filename = os.path.join("fetched_images", sop_instance.uid.replace(".", "_") + ".png")
         with open(rendered_image_filename, "wb") as file:
             # response.raw.decode_content = False
             file.write(response.content)
